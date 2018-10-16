@@ -21,7 +21,10 @@ echo "---> Installing bundler"
 gem install bundler
 
 echo "---> Installing gems"
-bundle install
+mkdir "$launchdir/bundler"
+touch "$launchdir/bundler.toml"
+
+bundle install --jobs=4 --retry=4 --path "$launchdir/bundler" --binstubs "$launchdir/bundler/bin"
 
 # Set default start command
 echo 'processes = [{ type = "web", command = "rackup -p 8080"}]' > "$launchdir/launch.toml"
