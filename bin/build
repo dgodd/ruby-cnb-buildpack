@@ -1,4 +1,24 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-exit 100
+# Set the launchdir variable to be the third argument from the build lifecycle
+launchdir=$3
+
+echo "---> Ruby Buildpack"
+
+echo "---> Downloading and extracting ruby"
+mkdir -p $launchdir/ruby
+touch $launchdir/ruby.toml
+
+ruby_url=https://s3-external-1.amazonaws.com/heroku-buildpack-ruby/heroku-18/ruby-2.5.1.tgz
+wget -q -O - "$ruby_url" | tar -xzf - -C "$launchdir/ruby"
+
+# Make ruby and bundler accessible in this script
+export PATH=$PATH:$launchdir/ruby/bin
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}$launchdir/ruby/lib
+
+echo "---> Installing bundler"
+gem install bundler
+
+echo "---> Installing gems"
+bundle install
