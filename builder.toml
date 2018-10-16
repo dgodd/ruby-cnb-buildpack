@@ -1,0 +1,8 @@
+[[buildpacks]]
+id = "com.github.dgodd.ruby"
+uri = "file://"
+
+[[groups]]
+buildpacks = [
+  { id = "com.github.dgodd.ruby", version = "0.0.1" },
+]
