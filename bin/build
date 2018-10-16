@@ -22,3 +22,6 @@ gem install bundler
 
 echo "---> Installing gems"
 bundle install
+
+# Set default start command
+echo 'processes = [{ type = "web", command = "rackup -p 8080"}]' > "$launchdir/launch.toml"
