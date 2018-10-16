@@ -1,0 +1,7 @@
+[buildpack]
+id = "com.github.dgodd.ruby"
+version = "0.0.1"
+name = "Sample Ruby Buildpack"
+
+[[stacks]]
+id = "io.buildpacks.stacks.bionic"
