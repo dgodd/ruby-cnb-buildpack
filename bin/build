@@ -20,11 +20,22 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}$launchdir/ruby/li
 echo "---> Installing bundler"
 gem install bundler
 
-echo "---> Installing gems"
-mkdir "$launchdir/bundler"
-touch "$launchdir/bundler.toml"
+### START BUNDLER LAYER
+local_bundler_checksum=$(md5sum Gemfile.lock | cut -d' ' -f1)
+if [[ -f $launchdir/bundler.toml ]]; then
+    remote_bundler_checksum=$(cat "$launchdir/bundler.toml" | yj -t | jq -r .lock_checksum)
+fi
+echo "BUNDLER CHECKSUMS: $local_bundler_checksum == $remote_bundler_checksum"
+if [[ -f Gemfile.lock && $local_bundler_checksum == $remote_bundler_checksum ]] ; then
+    echo "---> Reusing gems"
+else
+    echo "---> Installing gems"
+    mkdir "$launchdir/bundler"
+    echo "lock_checksum = \"$local_bundler_checksum\"" > "$launchdir/bundler.toml"
 
-bundle install --jobs=4 --retry=4 --path "$launchdir/bundler" --binstubs "$launchdir/bundler/bin"
+    bundle install --jobs=4 --retry=4 --path "$launchdir/bundler" --binstubs "$launchdir/bundler/bin"
+fi
+### END BUNDLER LAYER
 
 # Set default start command
 echo 'processes = [{ type = "web", command = "rackup -p 8080"}]' > "$launchdir/launch.toml"
