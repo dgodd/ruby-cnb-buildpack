@@ -4,3 +4,10 @@ set -eo pipefail
 if [[ ! -f Gemfile ]]; then
    exit 100
 fi
+
+version=2.5.1
+required_version=$([[ -f buildpack.toml ]] && cat buildpack.toml | yj -t | jq -r .ruby.version)
+if [[ ! -z $required_version ]]; then
+    version=$required_version
+fi
+echo "ruby = { version = \"$version\" }"

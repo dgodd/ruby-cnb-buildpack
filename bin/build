@@ -6,7 +6,7 @@ cachedir=$2
 launchdir=$3
 
 echo "---> Ruby Buildpack"
-ruby_version=2.5.1
+ruby_version=$(yj -t | jq -r .ruby.version)
 
 # Make ruby and bundler accessible in this script
 export PATH=$PATH:$cachedir/ruby/bin
