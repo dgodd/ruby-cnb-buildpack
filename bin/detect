@@ -5,9 +5,8 @@ if [[ ! -f Gemfile ]]; then
    exit 100
 fi
 
-version=2.5.1
-required_version=$([[ -f buildpack.toml ]] && cat buildpack.toml | yj -t | jq -r .ruby.version)
-if [[ ! -z $required_version ]]; then
-    version=$required_version
+version=$([[ -f buildpack.toml ]] && cat buildpack.toml | yj -t | jq -r .ruby.version || echo '')
+if [[ -z $version ]]; then
+    version=$(wget -q -O - https://raw.githubusercontent.com/postmodern/ruby-versions/master/ruby/stable.txt | tail -1)
 fi
 echo "ruby = { version = \"$version\" }"
