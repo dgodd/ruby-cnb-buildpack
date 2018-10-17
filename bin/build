@@ -2,30 +2,45 @@
 set -eo pipefail
 
 # Set the launchdir variable to be the third argument from the build lifecycle
+cachedir=$2
 launchdir=$3
 
 echo "---> Ruby Buildpack"
-
-echo "---> Downloading and extracting ruby"
-mkdir -p $launchdir/ruby
-touch $launchdir/ruby.toml
-
-ruby_url=https://s3-external-1.amazonaws.com/heroku-buildpack-ruby/heroku-18/ruby-2.5.1.tgz
-wget -q -O - "$ruby_url" | tar -xzf - -C "$launchdir/ruby"
+ruby_version=2.5.1
 
 # Make ruby and bundler accessible in this script
-export PATH=$PATH:$launchdir/ruby/bin
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}$launchdir/ruby/lib
+export PATH=$PATH:$cachedir/ruby/bin
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}$cachedir/ruby/lib
+if [[ $ruby_version == $([[ -f $cachedir/ruby.toml ]] && cat "$cachedir/ruby.toml" | yj -t | jq -r .version) ]] ; then
+    echo "---> Reusing ruby $ruby_version"
+else
+    echo "---> Downloading and extracting ruby"
+    rm -rf $cachedir/ruby
+    mkdir -p $cachedir/ruby
+    echo "version = \"$ruby_version\"" > "$cachedir/ruby.toml"
 
-echo "---> Installing bundler"
-gem install bundler
+    ruby_url=https://s3-external-1.amazonaws.com/heroku-buildpack-ruby/heroku-18/ruby-$ruby_version.tgz
+    wget -q -O - "$ruby_url" | tar -xzf - -C "$cachedir/ruby"
+
+    echo "---> Installing bundler"
+    gem install bundler
+fi
+
+if [[ $ruby_version == $([[ -f $launchdir/ruby.toml ]] && cat "$launchdir/ruby.toml" | yj -t | jq -r .version) ]] ; then
+    echo "---> Reusing ruby layer"
+else
+    echo "---> Adding ruby layer"
+    cp $cachedir/ruby.toml $launchdir/ruby.toml
+    cp -r $cachedir/ruby $launchdir/ruby
+fi
 
 ### START BUNDLER LAYER
-local_bundler_checksum=$(md5sum Gemfile.lock | cut -d' ' -f1)
-if [[ -f $launchdir/bundler.toml ]]; then
-    remote_bundler_checksum=$(cat "$launchdir/bundler.toml" | yj -t | jq -r .lock_checksum)
+if [[ -f Gemfile.lock ]]; then
+    local_bundler_checksum=$(md5sum Gemfile.lock | cut -d' ' -f1)
+    if [[ -f $launchdir/bundler.toml ]]; then
+        remote_bundler_checksum=$(cat "$launchdir/bundler.toml" | yj -t | jq -r .lock_checksum)
+    fi
 fi
-echo "BUNDLER CHECKSUMS: $local_bundler_checksum == $remote_bundler_checksum"
 if [[ -f Gemfile.lock && $local_bundler_checksum == $remote_bundler_checksum ]] ; then
     echo "---> Reusing gems"
 else
